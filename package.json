@@ -1,0 +1,54 @@
+{
+  "name": "@local/sidebar-groups",
+  "version": "2.3.0",
+  "private": true,
+  "type": "module",
+  "description": "A locally classified plugin wall with draggable groups and compact footer tools.",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-workspace"
+      ]
+    }
+  },
+  "scripts": {
+    "test": "node test.mjs",
+    "test:host": "node tests/installed-host.test.mjs",
+    "test:classification": "node tests/classification.test.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xueyufu/dsh-sidebar-groups.git"
+  },
+  "homepage": "https://github.com/xueyufu/dsh-sidebar-groups#readme",
+  "bugs": {
+    "url": "https://github.com/xueyufu/dsh-sidebar-groups/issues"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "sidebar",
+    "plugin-wall",
+    "automatic-grouping"
+  ]
+}
