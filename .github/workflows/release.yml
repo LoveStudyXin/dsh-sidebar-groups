@@ -1,0 +1,42 @@
+name: Publish plugin release
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/release.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: publish-plugin
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Validate runtime and grouping
+        run: |
+          node --check client.js
+          node test.mjs
+          node tests/classification.test.mjs
+      - name: Pack release
+        run: |
+          mkdir -p dist
+          npm pack --pack-destination dist --ignore-scripts
+          cd dist
+          sha256sum *.tgz > SHA256SUMS
+      - name: Publish versioned release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_COMMIT: ${{ github.sha }}
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          tag="v$version"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists; leaving it unchanged."
+            exit 0
+          fi
+          gh release create "$tag" dist/*.tgz dist/SHA256SUMS --target "$RELEASE_COMMIT" --title "插件墙 $version" --notes-file RELEASE_NOTES.md
