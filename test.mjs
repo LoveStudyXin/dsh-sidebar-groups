@@ -2,7 +2,7 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
 const code=readFileSync(new URL('./client.js',import.meta.url),'utf8');
-let mod,registration,component,persisted=JSON.stringify({assignments:{plugins:"common"}}),selected,newSession=0;
+let mod,registration,component,persisted=JSON.stringify({assignments:{plugins:"common"},names:{common:"Old favorites"},open:{common:false}}),selected,newSession=0;
 const cleanups=[],dictionaries={},states=new Map();
 const slotListeners=new Map();
 const documentListeners=new Map();let pointerTarget=null;
@@ -68,6 +68,11 @@ assert.ok(nodes.some(n=>n.type==='slot'&&n.props.name==='sidebar.settings'));
 assert.equal(nodes.filter(n=>n.type==='slot'&&n.props.name==='sidebar.panellist').length,1);
 assert.equal(text(button('Manage groups')),'','Manager entry should be an icon, with no dedicated text row');
 assert.ok(nodes.some(n=>n.type==='span'&&text(n)==='Plugin wall'));
+const ungrouped=nodes.find(n=>n.props.className==='lss-ungrouped');
+assert.ok(ungrouped,'Legacy common assignments must become top-level entries');
+assert.ok(!flatten(ungrouped).some(n=>n.props.className==='lss-group-title'),'Top-level entries have no folder heading');
+assert.ok(button('plugins').props.className.includes('lss-root-row'),'Ungrouped entry uses root indentation even with legacy folded state');
+assert.ok(!nodes.some(n=>text(n)==='Old favorites'),'Legacy common rename must not reintroduce a heading');
 click('Search plugins');refresh();
 const search=nodes.find(n=>n.type==='input'&&n.props['aria-label']==='Search plugins');
 search.props.onChange({target:{value:'schedules'}});refresh();
@@ -78,7 +83,12 @@ click('Clear plugin search');refresh();assert.equal(nodes.filter(n=>n.type==='sl
 click('plugins');assert.equal(selected,'plugins');click('New session');assert.equal(newSession,1);
 click('Productivity');refresh();assert.equal(JSON.parse(persisted).open.tools,true);
 const baseline=persisted;
-openManager();dragEntry('schedules','common');assert.equal(persisted,baseline,'Dragging in the dialog must stay a draft');
+openManager();
+assert.ok(nodes.some(n=>n.type==='span'&&text(n)==='Ungrouped'));
+assert.ok(!nodes.some(n=>n.type==='input'&&n.props['aria-label']==='Group name: Ungrouped'));
+assert.ok(!nodes.some(n=>n.type==='button'&&n.props['aria-label']==='Drag Ungrouped'));
+assert.ok(nodes.some(n=>n.type==='option'&&n.props.value==='common'&&text(n)==='Ungrouped'),'Move menu exposes ungrouped');
+dragEntry('schedules','common');assert.equal(persisted,baseline,'Dragging in the dialog must stay a draft');
 click('Cancel');refresh();assert.equal(persisted,baseline,'Cancel must discard draft changes');
 // Closing unmounts the manager; reflect that in this minimal hook harness.
 for(const key of [...states.keys()])if(key.includes('GroupManager')||key.includes('Modal'))states.delete(key);
@@ -129,5 +139,19 @@ dragEntry('fresh-extension','common');save();
 entries.find(entry=>entry.options.id==='fresh-extension').options.label='编程教练';
 slotListeners.get('sidebar.panellist')();refresh();
 assert.equal(JSON.parse(persisted).assignments['fresh-extension'],'common','Metadata updates must preserve manual grouping');
+// The direct sidebar can move every root entry into folders, then recreate the empty root drop zone.
+function sidebarDrag(id,group){
+  const label=entries.find(entry=>entry.options.id===id).options.label;
+  const source=button(label),e=event();source.props.onDragStart(e);refresh();
+  const target=nodes.find(n=>n.props['data-lss-drop-group']===group&&!n.props['data-lss-drop-before']);
+  assert.ok(target,'Missing sidebar drop zone '+group);target.props.onDrop(e);refresh();
+}
+for(const id of ['plugins','schedules','fresh-extension'])sidebarDrag(id,'tools');
+assert.ok(!nodes.some(n=>n.props.className==='lss-ungrouped'),'Empty ungrouped area takes no space at rest');
+sidebarDrag('plugins','common');
+assert.equal(JSON.parse(persisted).assignments.plugins,'common');
+assert.ok(nodes.some(n=>n.props.className==='lss-ungrouped'));
+assert.ok(button('plugins').props.className.includes('lss-root-row'));
+click('Daily');refresh();assert.ok(!nodes.some(n=>n.type==='button'&&n.props['aria-label']==='schedules'),'Normal folders remain collapsible');
 cleanups.reverse().forEach(fn=>fn());
 console.log('PASS: plugin wall and search, groups and pointer drag, footer draft/cancel/save, visibility/order/expansion, preserved runtime widgets and delayed toggles');
