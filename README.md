@@ -42,3 +42,13 @@ node tests/installed-host.test.mjs
 交互和分类测试验证手动优先、旧配置迁移及新入口动态归组；宿主测试读取已安装 Desktop 的 app.asar，验证实际补丁合并、单一侧栏所有权、8 个扩展槽位与卸载恢复，不代替完整桌面视觉检查。
 
 The SVG icon is original artwork created for this bundle.
+
+
+## 旧本地版卸载后侧栏空白
+
+早期通过手动配置启用的本地版本，可能在 desktop profile 的 `cordis.patch.yml` 留下 `ui-sidebar.disabled: true` 与 `local-sidebar-groups` 开关覆盖。插件管理器移除包和 bundle 时，这些手动覆盖可能仍保留，导致卸载后原生侧栏也不显示。
+
+处理这类旧配置时，先私密备份 profile 补丁，再仅移除上述两个侧栏条目的手动开关覆盖，保留其他插件和用户配置。不要长期留下 `ui-sidebar.disabled: false` 作为修复，因为它也会覆盖将来重装时 bundle 对原生侧栏的禁用，造成两个侧栏争用槽位。清除旧覆盖后，由宿主默认配置与插件 bundle 分别管理卸载、安装状态。
+
+该问题已在旧本地版的真实卸载场景确认并恢复；标准空白 profile 的 tgz 安装不依赖这些手动覆盖。
+
