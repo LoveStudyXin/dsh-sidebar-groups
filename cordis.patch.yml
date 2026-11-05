@@ -1,0 +1,7 @@
+# Only one sidebar may own these child slots. Removing this bundle restores
+# the native row. A name field is a matcher, not a row-renaming operation.
+- id: ui-sidebar
+  disabled: true
+- insert:
+    - id: local-sidebar-groups
+      name: '@local/sidebar-groups'
