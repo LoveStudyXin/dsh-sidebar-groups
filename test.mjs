@@ -65,6 +65,17 @@ function save(){click('Save changes');refresh();}
 refresh();
 assert.ok(nodes.some(n=>n.type==='slot'&&n.props.name==='sidebar.workspaces'));
 assert.ok(nodes.some(n=>n.type==='slot'&&n.props.name==='sidebar.settings'));
+function verifyAccountOutsideScroll(tree){
+  const all=flatten(tree),sidebar=all.find(n=>n.type==='aside');
+  const scroller=sidebar.children.find(n=>n.props?.className==='lss-scroll');
+  const account=sidebar.children.find(n=>n.props?.className==='lss-settings');
+  assert.ok(scroller&&account,'Account must be a fixed sibling of the shared scroller');
+  assert.ok(!flatten(scroller).some(n=>n.type==='slot'&&n.props.name==='sidebar.settings'),'Account must never scroll with content');
+  for(const slot of ['sidebar.workspaces','sidebar.panellist','sidebar.footer.action'])assert.ok(flatten(scroller).some(n=>n.type==='slot'&&n.props.name===slot),'Shared scroll area must retain '+slot);
+  assert.equal(flatten(account).filter(n=>n.type==='slot'&&n.props.name==='sidebar.settings').length,1);
+}
+verifyAccountOutsideScroll(render());verifyAccountOutsideScroll(render(true));
+
 assert.equal(nodes.filter(n=>n.type==='slot'&&n.props.name==='sidebar.panellist').length,1);
 assert.equal(text(button('Manage groups')),'','Manager entry should be an icon, with no dedicated text row');
 assert.ok(nodes.some(n=>n.type==='span'&&text(n)==='Plugin wall'));
