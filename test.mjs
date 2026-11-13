@@ -63,7 +63,22 @@ function pointerEntry(id,group,cancel=false,outside=false){
 }
 function save(){click('Save changes');refresh();}
 refresh();
-assert.ok(nodes.some(n=>n.type==='slot'&&n.props.name==='sidebar.workspaces'));
+// DSH 0.2.2 calls useSectionScroller() when mounting its native workspace browser.
+const workspaceSeat = registration.children['sidebar.workspaces'];
+function mountWorkspaceBrowser(tree, wide) {
+  const workspace = flatten(tree).find(n => n.type === 'slot' && n.props.name === 'sidebar.workspaces');
+  assert.ok(workspace, 'The sidebar must render the native workspace slot');
+  assert.equal(workspace.props.owner.wide, wide);
+  const useSectionScroller = workspaceSeat.inject.hooks.sectionScroller({}, workspace.props.opts.hookContext);
+  const scroller = useSectionScroller();
+  if (wide) {
+    scroller.bindScrollerRef({});
+    scroller.bindScrollerRef(null);
+  }
+  return scroller;
+}
+assert.equal(mountWorkspaceBrowser(render(), true), mountWorkspaceBrowser(render(true), false),
+  'The workspace should retain the same scroller capability when toggling the sidebar');
 assert.ok(nodes.some(n=>n.type==='slot'&&n.props.name==='sidebar.settings'));
 function verifyAccountOutsideScroll(tree){
   const all=flatten(tree),sidebar=all.find(n=>n.type==='aside');
